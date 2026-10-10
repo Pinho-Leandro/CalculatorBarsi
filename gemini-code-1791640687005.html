@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora Preço Teto & Projeção 5 Anos (B3)</title>
+    <!-- Tailwind CSS para design responsivo mobile-first -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js para gráficos interativos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between">
+
+    <!-- Header -->
+    <header class="bg-slate-800 border-b border-slate-700 py-4 px-4 shadow-md">
+        <div class="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
+            <div class="flex items-center gap-2">
+                <span class="text-emerald-400 text-2xl font-bold">📈</span>
+                <h1 class="text-xl font-bold tracking-tight text-white">Calculadora Barsi & Projeção 5 Anos</h1>
+            </div>
+            <span class="text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-3 py-1 rounded-full font-medium">B3 & FIIs</span>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-6xl mx-auto px-4 py-6 w-full flex-grow grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- Coluna Esquerda: Formulário de Entrada -->
+        <div class="lg:col-span-1 bg-slate-800 border border-slate-700 rounded-xl p-5 shadow-lg flex flex-col gap-4">
+            <h2 class="text-lg font-semibold text-emerald-400 border-b border-slate-700 pb-2">Parâmetros do Ativo</h2>
+
+            <div>
+                <label class="block text-xs font-medium text-slate-300 mb-1">Tipo de Ativo</label>
+                <select id="assetType" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-emerald-500">
+                    <option value="acao">Ação (Método Barsi - 6% a.a.)</option>
+                    <option value="fii">Fundo Imobiliário (FII - DY Médio)</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-xs font-medium text-slate-300 mb-1">Nome / Ticker do Ativo</label>
+                <input type="text" id="assetName" placeholder="Ex: PETR4, MXRF11, VALE3" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-emerald-500 uppercase">
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Cotação Atual (R$)</label>
+                    <input type="number" step="0.01" id="currentPrice" placeholder="0.00" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-emerald-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1" id="yieldOrPayoutLabel">Dividendo Anual (R$)</label>
+                    <input type="number" step="0.01" id="annualDividend" placeholder="0.00" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-emerald-500">
+                    <span id="hintSub" class="text-[10px] text-slate-400 mt-0.5 block">Soma dos div. últimos 12m</span>
+                </div>
+            </div>
+
+            <div class="border-t border-slate-700 pt-3 flex flex-col gap-3">
+                <h3 class="text-sm font-semibold text-emerald-400">Simulador de Aportes & Projeção</h3>
+                
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Aporte Mensal (R$)</label>
+                        <input type="number" id="monthlyContribution" value="500" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Reinvestir Dividendos?</label>
+                        <select id="reinvest" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-emerald-500">
+                            <option value="yes">Sim (Compostos)</option>
+                            <option value="no">Não (Sacar)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="text-xs font-medium text-slate-300">Taxa de Crescimento Anual (Cota)</label>
+                        <span id="growthRateVal" class="text-xs font-bold text-emerald-400">10% a.a.</span>
+                    </div>
+                    <input type="range" id="growthRate" min="0" max="25" step="0.5" value="10" class="w-full accent-emerald-500 bg-slate-900 cursor-pointer">
+                    <div class="flex justify-between text-[10px] text-slate-400 mt-1">
+                        <span>Conservador (0%)</span>
+                        <span>Média Mercado (~10%)</span>
+                        <span>Otimista (25%)</span>
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="calculate()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2.5 rounded-lg transition shadow-lg text-sm mt-2">
+                Calcular Preço Teto & Projeção
+            </button>
+        </div>
+
+        <!-- Coluna Direita: Resultados e Gráficos -->
+        <div class="lg:col-span-2 flex flex-col gap-6">
+
+            <!-- Cards de Diagnóstico -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow flex flex-col justify-between">
+                    <span class="text-xs text-slate-400 font-medium">Preço Teto Calculado</span>
+                    <div class="my-2">
+                        <span id="resCeilingPrice" class="text-2xl font-bold text-emerald-400">R$ 0,00</span>
+                    </div>
+                    <span id="resYieldTarget" class="text-[11px] text-slate-400">Base: 6.0% a.a.</span>
+                </div>
+
+                <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow flex flex-col justify-between">
+                    <span class="text-xs text-slate-400 font-medium">Status do Ativo</span>
+                    <div class="my-2">
+                        <span id="resStatus" class="text-sm font-bold text-slate-300">Aguardando dados...</span>
+                    </div>
+                    <span id="resMargin" class="text-[11px] text-slate-400">Margem de segurança: --</span>
+                </div>
+
+                <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow flex flex-col justify-between">
+                    <span class="text-xs text-slate-400 font-medium">Preço Estimado (Daqui 5 Anos)</span>
+                    <div class="my-2">
+                        <span id="resFuturePrice" class="text-2xl font-bold text-cyan-400">R$ 0,00</span>
+                    </div>
+                    <span id="resBenchmarkNote" class="text-[11px] text-slate-400">Perspectiva CAGR</span>
+                </div>
+            </div>
+
+            <!-- Gráfico Interativo -->
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow">
+                <h3 class="text-sm font-semibold text-slate-200 mb-3">Evolução Patrimonial Projetada (5 Anos)</h3>
+                <div class="relative h-60 w-full">
+                    <canvas id="projectionChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Tabela Detalhada Ano a Ano -->
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow overflow-x-auto">
+                <h3 class="text-sm font-semibold text-slate-200 mb-3">Detalhamento Ano a Ano (Cotação & Patrimônio)</h3>
+                <table class="w-full text-left text-xs text-slate-300">
+                    <thead class="bg-slate-900 text-slate-400 uppercase text-[10px]">
+                        <tr>
+                            <th class="p-2 rounded-l-lg">Ano</th>
+                            <th class="p-2">Preço Estimado Cota</th>
+                            <th class="p-2">Total Investido</th>
+                            <th class="p-2">Dividendos Acumulados</th>
+                            <th class="p-2 rounded-r-lg">Patrimônio Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="projectionTableBody" class="divide-y divide-slate-700/50">
+                        <tr>
+                            <td colspan="5" class="p-4 text-center text-slate-400">Preencha os dados e clique em calcular para ver a tabela.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-800 border-t border-slate-700 py-3 text-center text-xs text-slate-400">
+        Desenvolvido sob medida para investidores de longo prazo &bull; Metodologia Barsi
+    </footer>
+
+    <!-- Script de Lógica -->
+    <script>
+        const assetTypeSelect = document.getElementById('assetType');
+        const yieldOrPayoutLabel = document.getElementById('yieldOrPayoutLabel');
+        const hintSub = document.getElementById('hintSub');
+        const growthRateInput = document.getElementById('growthRate');
+        const growthRateVal = document.getElementById('growthRateVal');
+
+        let myChart = null;
+
+        // Ajustar rótulos conforme o tipo de ativo selecionado
+        assetTypeSelect.addEventListener('change', () => {
+            if(assetTypeSelect.value === 'fii') {
+                yieldOrPayoutLabel.innerText = 'Rendimento Anual Total (R$)';
+                hintSub.innerText = 'Soma dos dividendos pagos em 12m por cota';
+                growthRateInput.value = '6';
+                growthRateVal.innerText = '6.0% a.a.';
+            } else {
+                yieldOrPayoutLabel.innerText = 'Dividendo Anual por Ação (R$)';
+                hintSub.innerText = 'Soma dos proventos últimos 12m';
+                growthRateInput.value = '10';
+                growthRateVal.innerText = '10% a.a.';
+            }
+        });
+
+        growthRateInput.addEventListener('input', () => {
+            growthRateVal.innerText = growthRateInput.value + '% a.a.';
+        });
+
+        function calculate() {
+            const currentPrice = parseFloat(document.getElementById('currentPrice').value);
+            const annualDividend = parseFloat(document.getElementById('annualDividend').value);
+            const monthlyContribution = parseFloat(document.getElementById('monthlyContribution').value) || 0;
+            const reinvest = document.getElementById('reinvest').value === 'yes';
+            const annualGrowthRate = parseFloat(growthRateInput.value) / 100;
+            const isFii = assetTypeSelect.value === 'fii';
+
+            if (isNaN(currentPrice) || isNaN(annualDividend) || currentPrice <= 0) {
+                alert('Por favor, informe valores válidos para a Cotação Atual e Dividendos.');
+                return;
+            }
+
+            // 1. Cálculo Preço Teto Barsi (Considerando 6% a.a. desejado de DY)
+            const targetYield = 0.06;
+            const ceilingPrice = annualDividend / targetYield;
+
+            // 2. Status e Margem de Segurança
+            const statusEl = document.getElementById('resStatus');
+            const marginEl = document.getElementById('resMargin');
+            const ceilingEl = document.getElementById('resCeilingPrice');
+            const yieldTargetEl = document.getElementById('resYieldTarget');
+
+            ceilingEl.innerText = `R$ ${ceilingPrice.toFixed(2)}`;
+            yieldTargetEl.innerText = isFii ? 'Base FII: Target 6% a.a.' : 'Base Bazin/Barsi: 6% a.a.';
+
+            const diffPercent = ((ceilingPrice - currentPrice) / currentPrice) * 100;
+
+            if (currentPrice <= ceilingPrice) {
+                statusEl.innerText = '🟢 ATRATIVO (Abaixo do Teto)';
+                statusEl.className = 'text-sm font-bold text-emerald-400';
+                marginEl.innerText = `Margem de segurança: +${diffPercent.toFixed(1)}%`;
+            } else {
+                statusEl.innerText = '🔴 CARO (Acima do Teto)';
+                statusEl.className = 'text-sm font-bold text-rose-400';
+                marginEl.innerText = `Ágio de: ${diffPercent.toFixed(1)}%`;
+            }
+
+            // 3. Projeção de Preço em 5 Anos (CAGR de Mercado)
+            let futurePrice5 = currentPrice * Math.pow(1 + annualGrowthRate, 5);
+            document.getElementById('resFuturePrice').innerText = `R$ ${futurePrice5.toFixed(2)}`;
+            document.getElementById('resBenchmarkNote').innerText = `Considerando ${(annualGrowthRate*100).toFixed(1)}% a.a.`;
+
+            // 4. Simulação de Aportes Ano a Ano (1 a 5 Anos)
+            let years = [0, 1, 2, 3, 4, 5];
+            let prices = [currentPrice];
+            let investedCapital = [0]; // Considerando 0 patrimônio inicial extra, focando nos aportes
+            let accumulatedDividends = [0];
+            let totalPatrimony = [0];
+
+            let currentQty = 0;
+            let totalInvested = 0;
+            let totalDivsReceived = 0;
+
+            let tableHTML = `
+                <tr class="bg-slate-900/50">
+                    <td class="p-2 font-medium">Hoje (Ano 0)</td>
+                    <td class="p-2">R$ ${currentPrice.toFixed(2)}</td>
+                    <td class="p-2">R$ 0,00</td>
+                    <td class="p-2">R$ 0,00</td>
+                    <td class="p-2">R$ 0,00</td>
+                </tr>
+            `;
+
+            let simPrice = currentPrice;
+            let rollingDivPerShare = annualDividend;
+
+            for (let y = 1; y <= 5; y++) {
+                // Atualiza o preço da cota com base na taxa de crescimento escolhida
+                simPrice = simPrice * (1 + annualGrowthRate);
+                prices.push(simPrice);
+
+                // Atualiza o dividendo proporcionalmente ao preço (mantendo o DY médio aproximado)
+                rollingDivPerShare = rollingDivPerShare * (1 + (annualGrowthRate * 0.5)); 
+                const annualDivPerUnit = rollingDivPerShare;
+
+                // Aportes anuais (12 x aporte mensal)
+                let annualAdd = monthlyContribution * 12;
+                totalInvested += annualAdd;
+                investedCapital.push(totalInvested);
+
+                // Comprar cotas fracionadas/inteiras ao longo do ano com os aportes
+                // Simplificação: compra ao preço médio do ano
+                let avgYearPrice = simPrice; 
+                let sharesBoughtWithContributions = annualAdd / avgYearPrice;
+                currentQty += sharesBoughtWithContributions;
+
+                // Dividendos recebidos no ano
+                let yearDividends = currentQty * annualDivPerUnit;
+                totalDivsReceived += yearDividends;
+                accumulatedDividends.push(totalDivsReceived);
+
+                // Se reinvestir, compra mais cotas com os dividendos
+                if (reinvest && yearDividends > 0) {
+                    let sharesBoughtWithDivs = yearDividends / avgYearPrice;
+                    currentQty += sharesBoughtWithDivs;
+                }
+
+                let patrimony = currentQty * simPrice;
+                totalPatrimony.push(patrimony);
+
+                tableHTML += `
+                    <tr class="hover:bg-slate-700/30">
+                        <td class="p-2 font-medium">Ano ${y}</td>
+                        <td class="p-2">R$ ${simPrice.toFixed(2)}</td>
+                        <td class="p-2">R$ ${totalInvested.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                        <td class="p-2 text-emerald-400">R$ ${totalDivsReceived.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                        <td class="p-2 font-bold text-cyan-400">R$ ${patrimony.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                    </tr>
+                `;
+            }
+
+            document.getElementById('projectionTableBody').innerHTML = tableHTML;
+
+            // 5. Renderizar Gráfico com Chart.js
+            renderChart(years, totalPatrimony, investedCapital, accumulatedDividends);
+        }
+
+        function renderChart(labels, patrimonyData, investedData, dividendData) {
+            const ctx = document.getElementById('projectionChart').getContext('2d');
+            
+            if (myChart) {
+                myChart.destroy();
+            }
+
+            myChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels.map(l => l === 0 ? 'Hoje' : `Ano ${l}`),
+                    datasets: [
+                        {
+                            label: 'Patrimônio Total (R$)',
+                            data: patrimonyData,
+                            borderColor: '#38bdf8',
+                            backgroundColor: 'rgba(56, 189, 248, 0.1)',
+                            fill: true,
+                            tension: 0.3
+                        },
+                        {
+                            label: 'Total Investido do Bolso (R$)',
+                            data: investedData,
+                            borderColor: '#94a3b8',
+                            borderDash: [5, 5],
+                            tension: 0.3
+                        },
+                        {
+                            label: 'Dividendos Acumulados (R$)',
+                            data: dividendData,
+                            borderColor: '#34d399',
+                            tension: 0.3
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: { color: '#cbd5e1', font: { size: 11 } }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(51, 65, 85, 0.4)' },
+                            ticks: { color: '#94a3b8' }
+                        },
+                        y: {
+                            grid: { color: 'rgba(51, 65, 85, 0.4)' },
+                            ticks: { color: '#94a3b8' }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
